@@ -1,28 +1,24 @@
 # E-Growth Mobile Backend API Integration Guide
 
-## Purpose
+## Status
 
-This document describes the E-Growth backend APIs available to the mobile application, what each endpoint does, when the mobile application should use it, and the current implementation/deployment status.
+**Updated after PR #35 — `feature/mobile-participants` was merged into `develop`.**
 
-The backend is being delivered incrementally.
-
-Some APIs are already merged and can be tested against the development environment.
-
-Other APIs have been implemented and fully validated but are still awaiting merge/deployment.
+This document describes the backend APIs available to the E-Growth mobile application, how authentication and product access work, which endpoints should be used for each mobile feature, and which backend capabilities are still under development.
 
 ---
 
 # 1. Development Environment
 
-## Swagger / API Documentation
+## Swagger Documentation
 
-The live development Swagger documentation is available at:
+The development API documentation is available at:
 
 ```text
 https://e-growth.dev.educateapps.work/docs#/
 ```
 
-Use Swagger as the final source of truth for APIs that are **currently deployed**.
+Swagger should always be treated as the final source of truth for what has actually reached the deployed development environment.
 
 ---
 
@@ -38,99 +34,114 @@ https://e-growth.dev.educateapps.work
 https://e-growth.dev.educateapps.work/api/v1
 ```
 
-Flutter should configure this through environment configuration.
-
-Example:
+Recommended Flutter environment configuration:
 
 ```text
 API_BASE_URL=https://e-growth.dev.educateapps.work/api/v1
 ```
 
-Do NOT hardcode the URL directly inside:
+Do not hardcode the development URL inside:
 
-- screens
-- repositories
-- controllers
+- Screens
+- Controllers
+- Repositories
 - DTOs
-- models
+- Models
+- Services
+
+The API base URL should come from environment configuration.
 
 ---
 
-# 2. Current API Status
+# 2. Backend Architecture
 
-There are three statuses used in this document.
+The mobile application uses the same E-Growth backend infrastructure but operates as a separate Product workflow.
 
-### ✅ LIVE / MERGED
+The backend already supports another E-Growth application, so existing APIs and business rules must be preserved.
 
-Backend implementation has been merged and can be integrated/tested against the deployed development environment once deployment is healthy.
+The mobile application should consume existing APIs wherever possible rather than requiring duplicate mobile-specific endpoints.
 
-### 🟡 DEVELOPED / VALIDATED
+The general rule is:
 
-Backend implementation is complete and tested, but the feature branch has not yet been merged/deployed.
+```text
+Existing Backend API
+        ↓
+Flutter DTO / Repository Mapping
+        ↓
+Small additive backend extension if necessary
+        ↓
+New API only when no equivalent capability exists
+```
 
-The mobile developer can prepare models/repositories for it, but should NOT assume the endpoint exists on the live environment until backend confirms deployment.
-
-### ⏳ NOT READY
-
-Backend implementation has not yet been completed.
-
-Do not integrate these APIs yet.
+The mobile client should adapt to the backend contract rather than forcing the backend to duplicate an API simply because the Flutter model uses a different field name.
 
 ---
 
-# 3. Current API Readiness Summary
+# 3. Current API Status
+
+The backend currently has three categories of API readiness.
+
+## ✅ MERGED
+
+Implementation has been merged into `develop`.
+
+The endpoint should be considered integration-ready from the codebase perspective.
+
+Before testing against the development URL, confirm that it appears in Swagger.
+
+---
+
+## 🟡 DEVELOPED / VALIDATED
+
+Implementation is complete and tested but may still be awaiting merge/deployment.
+
+Mobile models and repositories can be prepared, but runtime integration should only be enabled once the endpoint appears in deployed Swagger.
+
+---
+
+## ⏳ NOT READY
+
+The backend capability has not yet been completed.
+
+The mobile application should not invent or mock a permanent API contract for these features.
+
+---
+
+# 4. Current API Readiness
 
 | Capability | Endpoint | Status |
 |---|---|---|
-| Clerk authentication | Clerk SDK/session | ✅ Available |
-| Mobile product access | `GET /auth/product-access` | ✅ LIVE / MERGED |
-| Product list | `GET /products` | ✅ LIVE / MERGED |
-| Product creation | `POST /products` | ✅ LIVE / MERGED |
-| Product memberships | `GET /products/{id}/memberships` | ✅ LIVE / MERGED |
-| Add product member | `POST /products/{id}/memberships` | ✅ LIVE / MERGED |
-| Update membership | `PATCH /products/{id}/memberships/{membership_id}` | ✅ LIVE / MERGED |
-| Locations | `GET /locations` | 🟡 DEVELOPED / VALIDATED |
-| Location detail | `GET /locations/{id}` | 🟡 DEVELOPED / VALIDATED |
-| Venues | `GET /venues` | 🟡 DEVELOPED / VALIDATED |
-| Venue detail | `GET /venues/{id}` | 🟡 DEVELOPED / VALIDATED |
-| Bootcamps | `GET /bootcamps` | 🟡 DEVELOPED / VALIDATED |
-| Bootcamp detail | `GET /bootcamps/{id}` | 🟡 DEVELOPED / VALIDATED |
-| Participants | `GET /participants` | 🟡 DEVELOPED / VALIDATED |
-| Participant detail | `GET /participants/{id}` | 🟡 DEVELOPED / VALIDATED |
-| Call history | `GET /participants/{id}/calls` | ⏳ NOT READY |
-| Record mobilisation call | `POST /participants/{id}/calls` | ⏳ NOT READY |
-| Dynamic Forms API | — | Deferred |
-| Generic Submission API | — | Deferred |
+| Clerk Authentication | Clerk SDK | ✅ AVAILABLE |
+| Product Access | `GET /auth/product-access` | ✅ MERGED |
+| Product List | `GET /products` | ✅ MERGED |
+| Product Creation | `POST /products` | ✅ MERGED |
+| Product Memberships | `GET /products/{id}/memberships` | ✅ MERGED |
+| Add Product Member | `POST /products/{id}/memberships` | ✅ MERGED |
+| Update Product Member | `PATCH /products/{id}/memberships/{membership_id}` | ✅ MERGED |
+| Locations | `GET /locations` | ✅ DEVELOPED |
+| Location Detail | `GET /locations/{id}` | ✅ DEVELOPED |
+| Venues | `GET /venues` | ✅ DEVELOPED |
+| Venue Detail | `GET /venues/{id}` | ✅ DEVELOPED |
+| Bootcamps | `GET /bootcamps` | ✅ DEVELOPED |
+| Bootcamp Detail | `GET /bootcamps/{id}` | ✅ DEVELOPED |
+| Participants | `GET /participants` | ✅ MERGED — PR #35 |
+| Participant Detail | `GET /participants/{id}` | ✅ MERGED — PR #35 |
+| Call History | `GET /participants/{id}/calls` | ⏳ NOT READY |
+| Record Call | `POST /participants/{id}/calls` | ⏳ NOT READY |
+| Dynamic Forms API | — | ⏸ DEFERRED |
+| Generic Submission API | — | ⏸ DEFERRED |
+
+For Locations, Venues and Bootcamps, verify deployment status in Swagger before using them against the development server.
 
 ---
 
-# 4. Authentication
+# 5. Authentication
 
-The backend uses **Clerk** for authentication.
+The mobile application uses **Clerk** for authentication.
 
-The Flutter application should authenticate the user using Clerk and obtain a Clerk session token.
+The mobile application should NOT implement a separate E-Growth username/password authentication system.
 
-Authenticated requests should send:
-
-```http
-Authorization: Bearer <clerk-session-token>
-```
-
-Example:
-
-```http
-GET /api/v1/auth/product-access
-Authorization: Bearer eyJ...
-Accept: application/json
-```
-
-The application must NOT implement another username/password authentication mechanism against the E-Growth backend.
-
----
-
-# 5. Authentication Architecture
-
-The intended mobile authentication flow is:
+The flow is:
 
 ```text
 Mobile App
@@ -143,58 +154,118 @@ Clerk Session Token
     ↓
 Authorization: Bearer <token>
     ↓
-E-Growth API
-    ↓
-Resolve Product Membership
-    ↓
-Allow / Deny Access
+E-Growth Backend
 ```
 
-Clerk answers:
+Authenticated requests should include:
 
-> Who is this person?
+```http
+Authorization: Bearer <clerk-session-token>
+```
 
-The E-Growth database answers:
+Example:
 
-> Which product can this person access, and what role do they have there?
-
-The mobile client must never determine authorization from email, local configuration or Clerk metadata by itself.
+```http
+GET /api/v1/auth/product-access
+Authorization: Bearer <clerk-session-token>
+Accept: application/json
+```
 
 ---
 
-# 6. Mobile Roles
+# 6. Authentication vs Authorization
 
-The current mobile roles are:
+Clerk is responsible for answering:
+
+```text
+Who is this person?
+```
+
+The E-Growth backend is responsible for answering:
+
+```text
+Which Product can this person access?
+```
+
+and:
+
+```text
+What role does this person have in that Product?
+```
+
+Do NOT determine authorization from:
+
+- Email domain
+- Flutter configuration
+- Clerk metadata
+- Hardcoded role mappings
+- Local storage
+
+The backend Product membership is authoritative.
+
+---
+
+# 7. Mobile Roles
+
+The currently supported mobile Product roles are:
 
 ```text
 AGENT
 ADMIN
 ```
 
-Where:
+For the mobilisation workflow:
 
 ```text
 AGENT = Mobilizer
 ```
 
-These are **product roles**.
+These are Product roles.
 
-They should not be confused with existing web application roles such as:
+They should not be confused with existing E-Growth web roles such as:
 
 ```text
 TRAINER
 ADMIN
 ```
 
-A mobile `ADMIN` does not automatically become a web/platform Admin.
+A Product `ADMIN` does not automatically become a platform/web Admin.
 
 ---
 
-# 7. Product Context
+# 8. Mobile User Provisioning
 
-Most mobile data is scoped to a Product.
+There is no self-registration approval workflow for the mobile Product.
 
-The backend uses:
+Instead, the user's email must already exist in the Product membership data.
+
+The intended flow is:
+
+```text
+Admin provisions email
+        ↓
+User signs in through Clerk
+        ↓
+Clerk verifies identity
+        ↓
+Backend reads verified email
+        ↓
+Backend finds Product membership
+        ↓
+Access granted
+```
+
+If the authenticated user does not have a valid Product membership, the backend denies Product access.
+
+The mobile application must NOT automatically create a Product membership during login.
+
+---
+
+# 9. Product Context
+
+Mobile data is Product-scoped.
+
+The backend uses the following header:
 
 ```http
 X-Current-Product: <product-code>
@@ -206,68 +277,80 @@ Example:
 X-Current-Product: mobilisation
 ```
 
-Do NOT send:
+Product context must NOT be replaced with:
 
 ```text
 X-Current-Tenant
-product_id in body
-product_id in query
+product_id query parameter
+product_id request body
 ```
 
-to try to override product context unless a particular endpoint explicitly documents it.
+unless a specific endpoint explicitly documents otherwise.
 
 ---
 
-# 8. Product Selection Rules
+# 10. Product Selection
 
-## User belongs to one Product
+A user may belong to one or multiple Products.
 
-If the user has exactly one active Product membership, the backend may resolve it automatically.
+The mobile application should determine this using:
 
-The client can continue directly into the application.
+```http
+GET /api/v1/auth/product-access
+```
 
----
+## One Product
 
-## User belongs to multiple Products
-
-The backend does NOT silently select the first one.
-
-The mobile application should:
+If the user has one active Product membership:
 
 ```text
-GET /auth/product-access
-        ↓
-display available Products
-        ↓
-user selects Product
-        ↓
-store selected Product code
-        ↓
-send X-Current-Product on Product-scoped requests
+Login
+ ↓
+Product Access
+ ↓
+Resolve Product
+ ↓
+Continue to Participant Dashboard
 ```
+
+## Multiple Products
+
+If the user has multiple Product memberships:
+
+```text
+Login
+ ↓
+GET /auth/product-access
+ ↓
+Display Product Selector
+ ↓
+User selects Product
+ ↓
+Store selected Product code
+ ↓
+Send X-Current-Product
+```
+
+Do not silently choose the first Product returned by the backend.
 
 ---
 
-# 9. GET `/api/v1/auth/product-access`
+# 11. GET `/api/v1/auth/product-access`
 
 ## Status
 
-✅ **LIVE / MERGED**
+✅ **MERGED**
 
 ## Purpose
 
-This is the primary mobile post-authentication endpoint.
+This is the primary mobile bootstrap endpoint after Clerk authentication.
 
-Use it immediately after Clerk authentication.
+It tells the application:
 
-It tells the mobile application:
-
-- whether the authenticated Clerk identity has mobile access
-- which Products they belong to
-- what role they have for each Product
-- whether a Product can be automatically selected
-
-This should be the main mobile authorization/bootstrap endpoint.
+- Whether the authenticated user has mobile Product access
+- Which Products they can access
+- Their role in each Product
+- Which Product is currently selected/resolved
 
 ---
 
@@ -284,248 +367,180 @@ Authorization: Bearer <clerk-session-token>
 Accept: application/json
 ```
 
-If the user has multiple Product memberships and wants to resolve a particular Product:
+When resolving a particular Product:
 
 ```http
-X-Current-Product: <product-code>
+X-Current-Product: mobilisation
 ```
 
 ---
 
-## Conceptual Response
+## When to Call It
 
-```json
-{
-  "email": "amina.agent@example.com",
-  "products": [
-    {
-      "product": {
-        "id": "product-id",
-        "code": "mobilisation",
-        "name": "Mobilisation",
-        "is_active": true
-      },
-      "role": "AGENT"
-    }
-  ],
-  "current": {
-    "product": {
-      "id": "product-id",
-      "code": "mobilisation",
-      "name": "Mobilisation",
-      "is_active": true
-    },
-    "role": "AGENT"
-  }
-}
+Call this endpoint:
+
+### Immediately after login
+
+```text
+Clerk Login
+ ↓
+GET /auth/product-access
+ ↓
+Product Resolution
+ ↓
+Application
 ```
 
-Use the live Swagger schema for the exact response structure.
+### When restoring a session
+
+```text
+Application Opens
+ ↓
+Restore Clerk Session
+ ↓
+GET /auth/product-access
+ ↓
+Confirm Product Access
+```
+
+Do not rely indefinitely on locally cached permissions.
+
+Product memberships may be changed or deactivated server-side.
 
 ---
 
-# 10. When to Use `/auth/product-access`
+# 12. Product Administration APIs
 
-Call it:
+The backend also exposes Product administration APIs.
 
-### After login
-
-```text
-Clerk login
-→ /auth/product-access
-→ establish mobile session
-```
-
-### After restoring a Clerk session
-
-When the user reopens the app:
-
-```text
-restore Clerk session
-→ call /auth/product-access
-→ verify backend access still exists
-```
-
-Do not rely indefinitely on locally cached product permissions.
-
-Memberships can be deactivated server-side.
+These are mainly intended for Product administration rather than the ordinary Mobilizer workflow.
 
 ---
 
-# 11. Mobile User Provisioning
-
-A mobile user does NOT self-register into the backend.
-
-The user must first have a Product membership created for their email.
-
-Workflow:
-
-```text
-Admin provisions email
-        ↓
-User signs in through Clerk
-        ↓
-Clerk verifies identity
-        ↓
-Backend reads verified email
-        ↓
-Product membership found
-        ↓
-Access granted
-```
-
-If no membership exists:
-
-```text
-403
-```
-
-The mobile application should display an access/provisioning message rather than trying to create the user itself.
-
----
-
-# 12. GET `/api/v1/products`
+# 13. GET `/api/v1/products`
 
 ## Status
 
-✅ **LIVE / MERGED**
+✅ **MERGED**
 
 ## Purpose
 
 Returns configured Products.
 
-This endpoint is primarily an administration/configuration API.
+This is primarily an administration/configuration API.
 
-A normal AGENT should use:
+A normal Mobilizer should use:
 
 ```http
-GET /auth/product-access
+GET /api/v1/auth/product-access
 ```
 
 to determine the Products they personally have access to.
 
-Do NOT use `/products` as the AGENT's authorization source.
+Do NOT use `/products` as the Mobilizer's authorization source.
 
 ---
 
-# 13. POST `/api/v1/products`
+# 14. POST `/api/v1/products`
 
 ## Status
 
-✅ **LIVE / MERGED**
+✅ **MERGED**
 
 ## Purpose
 
-Creates a Product.
+Creates a new Product.
 
-This is an administrative operation.
-
-The ordinary mobile AGENT application should generally NOT need to call this endpoint.
-
-Example use:
+Example administrative workflow:
 
 ```text
-Backend/Admin tooling
-→ create new Product
-→ provision Product memberships
-→ load Product reference data
+Create Product
+ ↓
+Provision Product Members
+ ↓
+Load Product Locations
+ ↓
+Load Venues / Bootcamps
+ ↓
+Load Participants
 ```
+
+The ordinary AGENT/Mobilizer application should not need this endpoint.
 
 ---
 
-# 14. GET `/api/v1/products/{product_id}/memberships`
+# 15. GET `/api/v1/products/{product_id}/memberships`
 
 ## Status
 
-✅ **LIVE / MERGED**
+✅ **MERGED**
 
 ## Purpose
 
-Lists users provisioned for a Product.
+Returns users provisioned for a Product.
 
-This is an administrative endpoint.
+Use this for Product administration.
 
-Use it when building or operating Product membership management.
-
-Do NOT use it to determine the current AGENT's session.
+Do not use this endpoint as the current user's login/bootstrap API.
 
 Use:
 
 ```http
-GET /auth/product-access
+GET /api/v1/auth/product-access
 ```
 
-for that.
+instead.
 
 ---
 
-# 15. POST `/api/v1/products/{product_id}/memberships`
+# 16. POST `/api/v1/products/{product_id}/memberships`
 
 ## Status
 
-✅ **LIVE / MERGED**
+✅ **MERGED**
 
 ## Purpose
 
-Pre-authorizes an email for a Product.
-
-This allows somebody to gain mobile access when they later authenticate through Clerk.
+Creates a Product membership for an email.
 
 Conceptually:
 
 ```json
 {
-  "email": "agent@example.com",
+  "email": "mobilizer@example.com",
   "role": "AGENT"
 }
 ```
 
-Exact request schema must be taken from Swagger.
+Use Swagger for the exact current request contract.
 
-Use this for:
-
-```text
-Product onboarding
-Product administration
-```
-
-Do not call this automatically from the mobile login screen.
+This endpoint is what allows an authenticated Clerk user to later receive Product access.
 
 ---
 
-# 16. PATCH `/api/v1/products/{product_id}/memberships/{membership_id}`
+# 17. PATCH `/api/v1/products/{product_id}/memberships/{membership_id}`
 
 ## Status
 
-✅ **LIVE / MERGED**
+✅ **MERGED**
 
 ## Purpose
 
 Updates an existing Product membership.
 
-Depending on the current API contract this may include things such as:
+Depending on the current Swagger contract, this may support:
 
-- role changes
-- activation
-- deactivation
+- Role changes
+- Activation
+- Deactivation
 
-Use the generated Swagger contract for exact writable fields.
-
-This is an administrative endpoint.
+Always use Swagger for the exact writable fields.
 
 ---
 
-# 17. GET `/api/v1/locations`
+# 18. Locations
 
-## Status
-
-🟡 **DEVELOPED + VALIDATED — AWAITING MERGE/DEPLOYMENT**
-
-Do not assume it is live until the backend team confirms the branch is merged and deployed.
-
-## Purpose
-
-Returns canonical geographical locations available to the selected Product.
+Locations represent canonical geographical reference data.
 
 Hierarchy:
 
@@ -539,13 +554,31 @@ Parish
 Village
 ```
 
-Locations are canonical geography.
+Locations themselves are canonical.
 
-Product availability is handled by the backend.
+Product availability is controlled separately by the backend.
+
+This prevents creating duplicate copies of locations such as Wakiso for every Product.
 
 ---
 
-# 18. Districts
+# 19. GET `/api/v1/locations`
+
+## Status
+
+✅ **DEVELOPED**
+
+Confirm the endpoint appears in development Swagger before runtime testing.
+
+## Purpose
+
+Returns locations available to the currently selected Product.
+
+The endpoint supports hierarchical filtering.
+
+---
+
+# 20. Get Districts
 
 ```http
 GET /api/v1/locations?level=district
@@ -555,46 +588,46 @@ Headers:
 
 ```http
 Authorization: Bearer <token>
-X-Current-Product: <product-code>
+X-Current-Product: mobilisation
 ```
 
-Use when displaying the first geographical selector.
+Use this to populate the District selector.
 
 ---
 
-# 19. Subcounties
+# 21. Get Subcounties
 
 ```http
 GET /api/v1/locations?level=subcounty&parent_id=<district_id>
 ```
 
-Use after the user chooses a District.
+Call after the user selects a District.
 
 ---
 
-# 20. Parishes
+# 22. Get Parishes
 
 ```http
 GET /api/v1/locations?level=parish&parent_id=<subcounty_id>
 ```
 
-Use after choosing a Subcounty.
+Call after the user selects a Subcounty.
 
 ---
 
-# 21. Villages
+# 23. Get Villages
 
 ```http
 GET /api/v1/locations?level=village&parent_id=<parish_id>
 ```
 
-Use after choosing a Parish.
+Call after the user selects a Parish.
 
 ---
 
-# 22. Location Response
+# 24. Location Response
 
-Conceptual:
+Conceptual response:
 
 ```json
 {
@@ -613,15 +646,13 @@ Conceptual:
 }
 ```
 
-The mobile client should support the backend pagination envelope.
+The mobile application must support backend pagination.
 
 ---
 
-# 23. Location Selection Behaviour
+# 25. Location Selection Behaviour
 
-When District changes:
-
-clear:
+When District changes, clear:
 
 ```text
 Subcounty
@@ -629,77 +660,66 @@ Parish
 Village
 ```
 
-When Subcounty changes:
-
-clear:
+When Subcounty changes, clear:
 
 ```text
 Parish
 Village
 ```
 
-When Parish changes:
-
-clear:
+When Parish changes, clear:
 
 ```text
 Village
 ```
 
-Never retain a child belonging to a previous parent.
+Never retain a child selection from a previous parent.
 
 ---
 
-# 24. Location IDs
+# 26. Location IDs
 
-Treat IDs as opaque strings.
+Treat location IDs as opaque strings.
 
-Do NOT infer:
+Do NOT derive:
 
-- hierarchy
+- Level
 - Product
-- permissions
-- database type
+- Hierarchy
+- Permissions
 
-from the identifier.
+from the ID.
 
-Use:
+Use the API fields:
 
 ```text
 level
 parent_id
 ```
 
-returned by the API.
+for hierarchy.
 
 ---
 
-# 25. GET `/api/v1/locations/{location_id}`
+# 27. GET `/api/v1/locations/{location_id}`
 
 ## Status
 
-🟡 **DEVELOPED + VALIDATED — AWAITING MERGE/DEPLOYMENT**
+✅ **DEVELOPED**
 
 ## Purpose
 
-Resolves one location and returns its ancestor chain.
+Returns one location and its geographical ancestors.
 
-Use it when the app has stored only:
+Use this when the application has a stored:
 
 ```text
 location_id
 ```
 
-but needs to display:
+but needs to display the complete location context.
 
-```text
-District
-Subcounty
-Parish
-Village
-```
-
-Example conceptual response:
+Conceptually:
 
 ```json
 {
@@ -727,37 +747,60 @@ Example conceptual response:
 }
 ```
 
-Ancestors are District-first.
+Ancestors are returned District-first.
 
 ---
 
-# 26. Product-Scoped Locations
+# 28. Product-Scoped Locations
 
-Locations returned by the API are filtered by:
+The backend determines which locations are available to the current Product.
+
+For example:
 
 ```text
-X-Current-Product
+Product A
+ ├── Kampala
+ └── Mukono
+
+Product B
+ ├── Kampala
+ └── Wakiso
 ```
 
-The client must NOT expect Product A locations to automatically appear in Product B.
+Kampala can be one canonical location record shared by both Products.
 
-The same canonical location ID may legitimately be available in multiple Products.
+The client does not need to manage this relationship itself.
 
 ---
 
-# 27. GET `/api/v1/venues`
-
-## Status
-
-🟡 **DEVELOPED + VALIDATED — AWAITING MERGE/DEPLOYMENT**
-
-## Purpose
-
-Returns active venues configured for the current Product.
+# 29. Venues
 
 Venues are Product-owned reference data.
 
-Use it when the mobile workflow needs the user to select a configured venue.
+Unlike canonical geography, two Products can legitimately have separate venues with the same name.
+
+Example:
+
+```text
+Product A → Community Hall
+Product B → Community Hall
+```
+
+These are separate Product-owned records.
+
+---
+
+# 30. GET `/api/v1/venues`
+
+## Status
+
+✅ **DEVELOPED**
+
+Confirm deployment in Swagger before runtime testing.
+
+## Purpose
+
+Returns active Venues configured for the currently selected Product.
 
 Request:
 
@@ -767,13 +810,13 @@ Authorization: Bearer <token>
 X-Current-Product: mobilisation
 ```
 
-The backend ensures Product A cannot see Product B's venues.
+Use this endpoint when the mobile workflow needs to display/select a configured Venue.
 
 ---
 
-# 28. Venue Information
+# 31. Venue Data
 
-A Venue may contain information such as:
+A Venue can contain information such as:
 
 ```text
 id
@@ -781,47 +824,55 @@ name
 location_id
 ```
 
-depending on the generated contract.
+Use Swagger for the exact response contract.
 
-A venue may optionally be associated with a Product-valid location.
+A Venue may optionally reference a Product-valid geographical location.
 
-Do not assume all venues have geographical location records.
-
----
-
-# 29. GET `/api/v1/venues/{venue_id}`
-
-## Status
-
-🟡 **DEVELOPED + VALIDATED — AWAITING MERGE/DEPLOYMENT**
-
-## Purpose
-
-Resolves a single Venue.
-
-Use when:
-
-- a Participant already contains `venue_id`
-- the mobile app needs the full Venue information
-- displaying saved/historical Participant context
-
-A Venue belonging to another Product should appear as not found rather than leaking cross-Product information.
+Do not assume every Venue has a location.
 
 ---
 
-# 30. GET `/api/v1/bootcamps`
+# 32. GET `/api/v1/venues/{venue_id}`
 
 ## Status
 
-🟡 **DEVELOPED + VALIDATED — AWAITING MERGE/DEPLOYMENT**
+✅ **DEVELOPED**
 
 ## Purpose
 
-Returns Bootcamp/training cohorts configured for the selected Product.
+Returns one Venue.
 
-A Bootcamp represents the scheduled training/bootcamp event.
+Use this when:
 
-The backend intentionally did NOT create a second redundant TrainingSchedule resource.
+- A Participant contains `venue_id`
+- The application needs the Venue name/details
+- Displaying saved Participant context
+
+Product isolation is enforced by the backend.
+
+---
+
+# 33. Bootcamps
+
+Bootcamp and Training Schedule are represented by one backend model.
+
+A Bootcamp represents the scheduled training/cohort event.
+
+The backend intentionally does not maintain a redundant second Training Schedule model.
+
+---
+
+# 34. GET `/api/v1/bootcamps`
+
+## Status
+
+✅ **DEVELOPED**
+
+Confirm deployment in Swagger before runtime testing.
+
+## Purpose
+
+Returns Bootcamps configured for the current Product.
 
 Conceptual fields include:
 
@@ -832,11 +883,11 @@ starts_on
 ends_on
 ```
 
-Use the generated API schema for exact fields/nullability.
+Use Swagger for the exact contract.
 
 ---
 
-# 31. When to Use Bootcamps
+# 35. Bootcamp Usage
 
 Use:
 
@@ -846,55 +897,51 @@ GET /api/v1/bootcamps
 
 when:
 
-- displaying available training/cohort choices
-- resolving Participant training context
-- showing upcoming Product training
+- Displaying available Bootcamps
+- Resolving Participant training context
+- Showing scheduled training/cohort information
 
 Only the current Product's Bootcamps are returned.
 
 ---
 
-# 32. GET `/api/v1/bootcamps/{bootcamp_id}`
+# 36. GET `/api/v1/bootcamps/{bootcamp_id}`
 
 ## Status
 
-🟡 **DEVELOPED + VALIDATED — AWAITING MERGE/DEPLOYMENT**
+✅ **DEVELOPED**
 
 ## Purpose
 
-Resolves one Bootcamp.
+Returns one Bootcamp.
 
-Use it when a Participant already references:
+Use it when a Participant already contains:
 
 ```text
 bootcamp_id
 ```
 
-and the UI needs full Bootcamp details.
+and the application needs the full Bootcamp information.
 
 ---
 
-# 33. Transport
+# 37. Transport
 
-There is intentionally NO:
+Transport is NOT a reference-data API.
 
-```text
+There is intentionally no endpoint such as:
+
+```http
 GET /transport-options
 ```
 
-API.
-
-The business clarified that transport is not an option/reference list.
-
-Transport is:
+Transport is represented as a monetary value on the Participant:
 
 ```text
 transport_amount
 ```
 
-stored on the Participant.
-
-For example:
+Example:
 
 ```json
 {
@@ -906,31 +953,65 @@ Do not build a Transport dropdown unless the business requirement changes.
 
 ---
 
-# 34. GET `/api/v1/participants`
+# 38. Participants
 
 ## Status
 
-🟡 **DEVELOPED + VALIDATED — AWAITING MERGE/DEPLOYMENT**
+✅ **MERGED INTO DEVELOP — PR #35**
+
+Participant support is now part of `develop`.
+
+These APIs provide the main Participant data required by the mobile Mobilizer workflow.
+
+---
+
+# 39. GET `/api/v1/participants`
+
+## Status
+
+✅ **MERGED — PR #35**
 
 ## Purpose
 
 Returns Participants belonging to the currently selected Product.
 
-This is the main mobile dashboard/list endpoint.
+This is the primary endpoint for the Mobilizer Participant dashboard.
 
-Request:
+Use it for:
+
+- Participant list
+- Participant search
+- Participant status filtering
+- Pagination
+- Selecting a Participant
+
+---
+
+## Request
 
 ```http
 GET /api/v1/participants
-Authorization: Bearer <token>
+```
+
+Headers:
+
+```http
+Authorization: Bearer <clerk-session-token>
 X-Current-Product: mobilisation
+Accept: application/json
+```
+
+Example:
+
+```http
+GET /api/v1/participants?page=1&page_size=50
 ```
 
 ---
 
-# 35. Participant List Filters
+# 40. Participant Filters
 
-Currently implemented:
+Currently supported:
 
 ```text
 status
@@ -939,194 +1020,309 @@ page
 page_size
 ```
 
-Example:
+Example search:
 
 ```http
-GET /api/v1/participants?status=in_progress&page=1&page_size=50
+GET /api/v1/participants?search=Amina&page=1&page_size=50
 ```
 
-Search is Product-scoped.
+Example status filter:
 
-Do not expect search to return another Product's Participants.
+```http
+GET /api/v1/participants?status=pending&page=1&page_size=50
+```
+
+The mobile application should use server-side pagination.
+
+Do not download the entire roster unnecessarily.
 
 ---
 
-# 36. Participant List Use Cases
+# 41. Participant List Response
 
-Use this endpoint for:
+The API follows the standard pagination format.
 
-```text
-Mobilizer Dashboard
-Participant Search
-Participant List
-Participant Status Filtering
-Pagination
+Conceptually:
+
+```json
+{
+  "items": [
+    {
+      "youth_id": "participant-id",
+      "external_id": "MOB-001",
+      "first_name": "Amina",
+      "last_name": "Nakato",
+      "phone_number": "0770000000",
+      "status": "pending"
+    }
+  ],
+  "page": 1,
+  "page_size": 50,
+  "total": 1,
+  "total_pages": 1
+}
 ```
 
-Do NOT download an entire Participant dataset unnecessarily.
-
-Use backend pagination.
+Use Swagger for the exact schema.
 
 ---
 
-# 37. Participant Identity
+# 42. Participant Identity
 
-Participants have two identifiers internally:
+Participants have a canonical internal UUID.
 
-### Backend ID
-
-Canonical internal participant identifier.
-
-The API may expose this under:
+At the API boundary this may be exposed as:
 
 ```text
 youth_id
 ```
 
-because that is what the mobile contract expects.
+This naming comes from the mobile contract.
 
-This does NOT mean it references Product A's `youths` table.
-
-### External ID
+It does NOT mean the Participant is linked to the existing E-Growth:
 
 ```text
-external_id
+youths
 ```
 
-comes from the uploaded Product roster and is unique within that Product.
+table.
 
-The mobile app should treat backend IDs as opaque.
+The mobilisation workflow and the existing youth verification workflow remain separate datasets.
 
 ---
 
-# 38. Participant Fields
+# 43. External Participant ID
 
-Current participant implementation includes fields such as:
+Participants also contain:
 
 ```text
-id / youth_id
 external_id
+```
+
+This comes from the Product roster.
+
+It is unique within a Product.
+
+Example:
+
+```text
+MOB-001
+```
+
+The mobile application should treat both internal IDs and external IDs according to their documented purpose.
+
+Do not infer relationships from their format.
+
+---
+
+# 44. Participant Fields
+
+The current Participant implementation includes fields such as:
+
+```text
+youth_id / participant identifier
+external_id
+
 first_name
 last_name
+
 phone_number
 alternative_phone_number
+
 age
 program_name
+
 location_id
 venue_id
 bootcamp_id
+
 transport_amount
+
 status
+
 contact_attempt_count
 last_contacted_at
+
 is_active
 ```
 
-Use Swagger for exact response shape.
+Use Swagger for the exact:
 
-Notably:
+- Field names
+- Data types
+- Nullable fields
+- Enum values
+
+The current agreed Participant contract did not include:
 
 ```text
 gender
 date_of_birth
 ```
 
-were NOT part of the agreed current participant contract and were therefore not added.
+so they were not introduced.
 
 ---
 
-# 39. GET `/api/v1/participants/{participant_id}`
+# 45. GET `/api/v1/participants/{participant_id}`
 
 ## Status
 
-🟡 **DEVELOPED + VALIDATED — AWAITING MERGE/DEPLOYMENT**
+✅ **MERGED — PR #35**
 
 ## Purpose
 
-Returns full context for one Participant.
+Returns full information for one Participant.
 
-Use when the Mobilizer opens a Participant from the list.
+Use this endpoint when the Mobilizer opens a Participant from the Participant list.
 
-The response is intended to give the application enough information to begin the mobilisation/contact workflow.
+Example:
 
----
-
-# 40. Participant Detail Context
-
-The detail may resolve context such as:
-
-```text
-participant identity
-phone numbers
-status
-location
-venue
-bootcamp
-transport amount
-contact state
+```http
+GET /api/v1/participants/<participant-id>
+Authorization: Bearer <token>
+X-Current-Product: mobilisation
 ```
 
-The mobile app should use the detail endpoint instead of trying to construct the whole Participant record from list data.
+---
+
+# 46. Participant Detail Usage
+
+Recommended flow:
+
+```text
+Participant Dashboard
+        ↓
+GET /participants
+        ↓
+Select Participant
+        ↓
+GET /participants/{id}
+        ↓
+Participant Detail Screen
+```
+
+The Participant detail endpoint should be used as the primary source for the Participant screen.
+
+Do not attempt to reconstruct the entire detail screen from the Participant list item.
 
 ---
 
-# 41. Product Isolation on Participants
+# 47. Participant References
 
-A Participant belongs to exactly one Product.
+A Participant may contain:
+
+```text
+location_id
+venue_id
+bootcamp_id
+```
+
+These references can be resolved through the corresponding reference APIs.
+
+```text
+Participant
+   │
+   ├── location_id
+   │       ↓
+   │   GET /locations/{id}
+   │
+   ├── venue_id
+   │       ↓
+   │   GET /venues/{id}
+   │
+   └── bootcamp_id
+           ↓
+       GET /bootcamps/{id}
+```
+
+Do not duplicate the full reference records inside local Participant models unnecessarily.
+
+---
+
+# 48. Participant Product Isolation
+
+Participants belong to Products.
+
+The mobile application must send:
+
+```http
+X-Current-Product: <product-code>
+```
 
 The backend enforces Product isolation.
 
-If the mobile user is operating in Product A and requests a Product B Participant ID:
+If a user operating in Product A requests a Participant belonging only to Product B, the API should behave as though that Participant cannot be resolved within Product A.
 
-the API returns Product-safe not-found behavior.
-
-The client should not attempt cross-Product lookup.
+The mobile application should not attempt cross-Product discovery.
 
 ---
 
-# 42. Contact State
+# 49. Participant Import
 
-Participant records currently contain:
+Participants are loaded from Product-specific roster files by the backend.
+
+The mobile application does NOT create the Participant roster.
+
+There is currently no mobile workflow requiring:
+
+```http
+POST /participants
+```
+
+Participant loading is handled administratively.
+
+---
+
+# 50. Participant Import Behaviour
+
+Current backend import semantics are non-destructive upsert.
 
 ```text
+New participant
+    → created
+
+Known participant with changed roster data
+    → updated
+
+Participant absent from new upload
+    → retained
+
+Existing call/contact progress
+    → preserved
+```
+
+This protects mobilisation progress when a roster is uploaded again.
+
+---
+
+# 51. Contact State
+
+Participants already contain:
+
+```text
+status
 contact_attempt_count
 last_contacted_at
-status
 ```
 
-These fields are ready for the Calls API.
+These fields prepare the Participant model for the Calls API.
 
-Until Calls are implemented/deployed, they may remain at their initial values.
+Until Calls are implemented, these values may remain at their initial state.
 
-The mobile application should not update these fields locally as if local state were authoritative.
+The mobile application must not treat locally calculated contact state as authoritative.
 
 ---
 
-# 43. Participant Import Behaviour
-
-Participants are loaded by the backend from Product-specific roster files.
-
-The mobile app does NOT create Participant records through a mobile `POST /participants` API.
-
-Current backend import semantics are non-destructive upsert:
-
-```text
-new row     → create
-known row   → update changed roster fields
-missing row → leave unchanged
-```
-
-Call/contact progress is deliberately preserved during re-import.
-
----
-
-# 44. Calls / Mobilisation API
+# 52. Calls / Contact Attempts
 
 ## Status
 
-⏳ **NOT READY**
+⏳ **NEXT BACKEND FEATURE**
 
-The next planned resource is:
+The next backend capability required for the complete mobilisation workflow is Calls / Contact Attempts.
+
+Planned endpoints:
 
 ```http
 GET /api/v1/participants/{participant_id}/calls
@@ -1134,13 +1330,15 @@ GET /api/v1/participants/{participant_id}/calls
 POST /api/v1/participants/{participant_id}/calls
 ```
 
-Do NOT call these endpoints until the backend team confirms they are merged/deployed.
+Do not call these endpoints until the backend confirms they have been implemented and deployed.
 
 ---
 
-# 45. Planned Call Behaviour
+# 53. Planned Call Behaviour
 
-The Calls endpoint will represent both:
+A Call represents a contact attempt against a Participant.
+
+The same resource should support both:
 
 ```text
 ordinary contact attempt
@@ -1149,90 +1347,138 @@ ordinary contact attempt
 and:
 
 ```text
-completed mobilisation submission
+completed mobilisation interaction
 ```
 
-using the SAME resource.
+The intended distinction is based on the submitted data.
 
-Conceptually:
+For example:
 
 ```text
-POST participant call
+POST Call
+without mobilisation answers
+        ↓
+Contact Attempt
 ```
 
-without `answers`:
+and:
 
 ```text
-contact attempt
+POST Call
+with mobilisation answers
+        ↓
+Completed Mobilisation Interaction
 ```
 
-with `answers`:
-
-```text
-mobilisation form submission
-```
-
-The mobile developer should NOT build separate backend integrations for:
-
-```text
-contact_attempt
-mobilisation_submission
-```
+The mobile developer should not create two separate backend integrations unless the final Calls contract explicitly requires it.
 
 ---
 
-# 46. Dynamic Forms
+# 54. Call History
 
-A server-side Dynamic Forms API is intentionally deferred for the current MVP.
+Once available:
 
-The mobile application can continue using its bundled mobilisation JSON/form definition.
-
-The future Calls endpoint will accept the resulting:
-
-```text
-answers
+```http
+GET /api/v1/participants/{participant_id}/calls
 ```
 
-object.
+will be used to display previous contact attempts for a Participant.
 
-Therefore do NOT wait for:
+Expected use:
 
 ```text
+Participant Detail
+      ↓
+Call History
+      ↓
+GET /participants/{id}/calls
+```
+
+Do not invent the final response fields before the backend contract is delivered.
+
+---
+
+# 55. Record Call
+
+Once available:
+
+```http
+POST /api/v1/participants/{participant_id}/calls
+```
+
+will be the write path for Mobilizer contact activity.
+
+The backend should own updates to:
+
+```text
+participant.status
+participant.contact_attempt_count
+participant.last_contacted_at
+```
+
+The mobile application should not manually synchronize those fields through separate requests.
+
+---
+
+# 56. Dynamic Forms
+
+Dynamic Forms are deferred for the current MVP.
+
+The mobile application can continue using its bundled mobilisation form definition.
+
+There is currently no requirement to wait for endpoints such as:
+
+```http
 GET /forms
+GET /forms/{id}
 GET /form-schema
 ```
 
-before building the current mobile form.
+before implementing the mobile form.
 
 ---
 
-# 47. Generic Submission API
+# 57. Mobilisation Answers
 
-Also deferred for the MVP.
+The current direction is:
 
-Do NOT currently integrate:
+```text
+Flutter Bundled Form
+        ↓
+User completes form
+        ↓
+Flutter creates answers object
+        ↓
+POST /participants/{id}/calls
+        ↓
+Backend stores mobilisation interaction
+```
+
+This becomes active once the Calls API is delivered.
+
+---
+
+# 58. Generic Submission API
+
+A generic form submission API is also deferred.
+
+Do NOT currently build against:
 
 ```http
 POST /forms/{form_key}/submissions
 ```
 
-The current MVP submission path will be:
+unless a later backend contract explicitly introduces it.
 
-```text
-Bundled Flutter form
-        ↓
-answers
-        ↓
-POST /participants/{participant_id}/calls
-```
-
-once that endpoint becomes available.
+For the MVP, mobilisation submission belongs to the Participant Call workflow.
 
 ---
 
-# 48. Common Pagination Format
+# 59. Pagination
 
-List APIs use:
+List APIs use the backend's standard pagination structure.
+
+Conceptually:
 
 ```json
 {
@@ -1244,11 +1490,20 @@ List APIs use:
 }
 ```
 
-Do NOT assume:
+Do not assume:
 
 ```text
 items.length == total
 ```
+
+For example:
+
+```text
+items.length = 50
+total = 450
+```
+
+means the current page contains 50 of 450 records.
 
 Recommended Flutter model:
 
@@ -1264,9 +1519,9 @@ class Page<T> {
 
 ---
 
-# 49. Common Error Format
+# 60. Error Handling
 
-Backend errors use structured JSON.
+The backend uses structured error responses.
 
 Conceptually:
 
@@ -1278,13 +1533,13 @@ Conceptually:
 }
 ```
 
-The response may include:
+The response may also include:
 
 ```text
 X-Request-Id
 ```
 
-Preserve it.
+Preserve this value for debugging/support.
 
 Recommended Flutter exception:
 
@@ -1299,11 +1554,9 @@ class ApiException implements Exception {
 
 ---
 
-# 50. HTTP Status Handling
+# 61. HTTP 400
 
-## 400
-
-Usually request/context problem.
+A `400` normally represents an invalid request context.
 
 Example:
 
@@ -1311,80 +1564,92 @@ Example:
 PRODUCT_CONTEXT_REQUIRED
 ```
 
-The client may need the user to select a Product.
+The mobile application may need to ask the user to select a Product.
 
 ---
 
-## 401
+# 62. HTTP 401
 
-Authentication/session problem.
+A `401` represents an authentication/session problem.
 
-The Clerk session/token is missing or invalid.
+Examples:
 
-Attempt session recovery through Clerk.
+- Missing Clerk token
+- Invalid Clerk token
+- Expired Clerk session
 
-Do NOT repeatedly retry with the same invalid token.
+The application should attempt Clerk session recovery.
+
+Do not repeatedly retry the same invalid token.
 
 ---
 
-## 403
+# 63. HTTP 403
 
-Authenticated but unauthorized.
+A `403` means the user is authenticated but not authorized.
 
-Possible causes:
+Possible causes include:
+
+- No Product membership
+- Inactive membership
+- Inactive Product
+- User attempting to access an unauthorized Product
+
+Do not convert a `403` into a login failure automatically.
+
+Authentication may still be valid.
+
+---
+
+# 64. HTTP 404
+
+A `404` means the requested resource cannot be resolved in the caller's current Product context.
+
+For Product-scoped resources, this may intentionally hide whether the resource exists in another Product.
+
+Do not attempt cross-Product discovery after receiving a `404`.
+
+---
+
+# 65. HTTP 422
+
+A `422` represents validation failure.
+
+Inspect:
 
 ```text
-no Product membership
-inactive membership
-inactive Product
-attempted access to unheld Product
-```
-
-Do not convert this to `401`.
-
----
-
-## 404
-
-Resource cannot be resolved inside the caller's current Product.
-
-Do NOT attempt to determine whether the resource exists in another Product.
-
-This is intentional anti-enumeration behavior.
-
----
-
-## 422
-
-Validation error.
-
-Use:
-
-```text
+code
+message
 details
 ```
 
-to determine which input/query parameter was invalid.
+and, where available:
+
+```text
+details.field_errors
+```
+
+Use those fields to present appropriate validation feedback.
 
 ---
 
-# 51. Recommended Flutter Architecture
+# 66. Recommended Flutter Architecture
 
-Use:
+Use a layered architecture.
 
 ```text
 Screen
    ↓
-Controller / State
+Controller / State Management
    ↓
 Repository
    ↓
-ApiClient
+API Client
    ↓
 Backend
 ```
 
-Do NOT use:
+Avoid:
 
 ```text
 Screen
@@ -1394,7 +1659,11 @@ Dio.get(...)
 
 directly.
 
-Suggested repositories:
+---
+
+# 67. Recommended Repositories
+
+Suggested Flutter repositories:
 
 ```text
 AuthRepository
@@ -1403,270 +1672,523 @@ LocationRepository
 VenueRepository
 BootcampRepository
 ParticipantRepository
-CallRepository      [when ready]
+CallRepository
 ```
+
+`CallRepository` can be implemented once the Calls contract is available.
 
 ---
 
-# 52. Central API Client
+# 68. Central API Client
 
-The API client should centrally handle:
+The API client should centrally manage:
 
 ```text
 API_BASE_URL
-Authorization
-X-Current-Product
+Authorization header
+X-Current-Product header
 JSON encoding
 JSON decoding
-pagination
-timeouts
-structured errors
+Pagination
+Timeouts
+Structured API errors
 X-Request-Id
-network exceptions
+Network errors
 ```
 
-Product context should not have to be manually added by every screen.
+Screens should not manually attach Product headers.
 
 ---
 
-# 53. Suggested Mobile Startup Flow
+# 69. Product Context Storage
+
+After Product selection, store the current Product code in application state.
+
+Example:
 
 ```text
-Launch
-  ↓
-Restore Clerk session
-  ↓
-No session?
-  ├── YES → Sign In
-  └── NO
-       ↓
-GET /auth/product-access
-       ↓
-0 Products?
-  → Access/provisioning screen
+currentProduct.code = mobilisation
+```
 
-1 Product?
-  → Select automatically / continue
+The API client can then automatically send:
 
-Multiple Products?
-  → Product selector
-       ↓
-Store current Product code
-       ↓
-Use X-Current-Product
-       ↓
+```http
+X-Current-Product: mobilisation
+```
+
+for Product-scoped requests.
+
+If the user switches Products:
+
+```text
+Clear Product-specific caches
+ ↓
+Update Current Product
+ ↓
+Reload Product-scoped data
+```
+
+Do not display stale Participants from the previous Product.
+
+---
+
+# 70. Recommended Startup Flow
+
+```text
+Application Launch
+        ↓
+Restore Clerk Session
+        ↓
+Session exists?
+   ┌────┴────┐
+   │         │
+  NO        YES
+   │         │
+Sign In      ↓
+        GET /auth/product-access
+             ↓
+        Products available?
+             ↓
+        ┌────┴────┐
+        │         │
+       NO        YES
+        │         │
+   Access      One Product?
+   Message        ↓
+              Auto-select
+                  │
+              Multiple?
+                  ↓
+            Product Selector
+                  ↓
+          Set X-Current-Product
+                  ↓
+          Participant Dashboard
+```
+
+---
+
+# 71. Recommended Participant Flow
+
+The mobile developer can now implement:
+
+```text
 Participant Dashboard
+        ↓
+GET /participants
+        ↓
+Search / Filter / Paginate
+        ↓
+Select Participant
+        ↓
+GET /participants/{id}
+        ↓
+Participant Detail
+        ↓
+Display:
+  - Participant identity
+  - Contact details
+  - Location
+  - Venue
+  - Bootcamp
+  - Transport amount
+  - Current status
 ```
 
 ---
 
-# 54. Suggested Mobilizer Workflow
+# 72. Complete Target Mobilizer Flow
 
-When the remaining APIs are deployed, expected flow is:
+Once Calls are available:
 
 ```text
-Login
- ↓
-/auth/product-access
- ↓
-Select Product
- ↓
-/participants
- ↓
-Participant selected
- ↓
-/participants/{id}
- ↓
-Resolve location / venue / bootcamp as needed
- ↓
-Start call
- ↓
-POST /participants/{id}/calls
- ↓
-Participant state updated
+Clerk Login
+      ↓
+Product Access
+      ↓
+Product Selection
+      ↓
+Participant List
+      ↓
+Participant Detail
+      ↓
+Contact Participant
+      ↓
+Record Call
+      ↓
+Complete Mobilisation Form
+      ↓
+Submit Answers
+      ↓
+Backend Updates Participant State
+      ↓
+Updated Participant / Call History
 ```
 
 ---
 
-# 55. Swagger Usage
+# 73. What the Mobile Team Can Work on Now
 
-Development API documentation:
+The mobile team can proceed with the following.
+
+## Authentication
 
 ```text
-https://e-growth.dev.educateapps.work/docs#/
+Clerk login
+Clerk session restoration
+Token handling
+Logout
 ```
 
-Before integrating an endpoint marked:
+## Product Access
 
 ```text
-🟡 DEVELOPED / VALIDATED
-```
-
-check Swagger.
-
-If it does NOT appear in Swagger yet:
-
-it has not reached the deployed development environment.
-
-Do not work around that by guessing the route.
-
-Ask the backend team for deployment status.
-
----
-
-# 56. Current Mobile Developer Scope
-
-The mobile developer can safely work now on:
-
-### Live
-
-```text
-Clerk authentication
-
 GET /auth/product-access
-
 Product selection
-
 X-Current-Product handling
+Access-denied state
 ```
 
-Administration APIs can also be tested where relevant.
+## Participants
 
-### Prepare integration for upcoming deployment
+```text
+Participant DTO
+Participant repository
+Participant list
+Participant search
+Participant filtering
+Pagination
+Participant detail
+Participant empty state
+Participant error state
+```
 
-Models/repositories can be prepared for:
+## Reference Data
+
+Where confirmed in deployed Swagger:
 
 ```text
 Locations
 Venues
 Bootcamps
-Participants
 ```
 
-but runtime calls should only be enabled when those endpoints appear in deployed Swagger.
+---
 
-### Wait for backend
+# 74. What the Mobile Team Should NOT Build Yet
 
-Do not enable:
+Do not invent permanent backend contracts for:
 
 ```text
+Call creation
 Call history
-Call recording
-Mobilisation answer submission
+Mobilisation submission endpoint
+Dynamic form retrieval
+Generic form submission
+Transport option list
+Participant creation
 ```
 
-until Calls is delivered.
+These either remain under development or are intentionally not part of the MVP architecture.
 
 ---
 
-# 57. API Readiness at a Glance
+# 75. API Usage Summary
+
+## Authentication
+
+```http
+GET /api/v1/auth/product-access
+```
+
+Use after Clerk authentication and when restoring a session.
+
+---
+
+## Product Administration
+
+```http
+GET    /api/v1/products
+POST   /api/v1/products
+
+GET    /api/v1/products/{product_id}/memberships
+POST   /api/v1/products/{product_id}/memberships
+PATCH  /api/v1/products/{product_id}/memberships/{membership_id}
+```
+
+Primarily administrative.
+
+---
+
+## Locations
+
+```http
+GET /api/v1/locations
+GET /api/v1/locations/{location_id}
+```
+
+Used for District → Subcounty → Parish → Village reference data.
+
+---
+
+## Venues
+
+```http
+GET /api/v1/venues
+GET /api/v1/venues/{venue_id}
+```
+
+Used for Product-specific Venue information.
+
+---
+
+## Bootcamps
+
+```http
+GET /api/v1/bootcamps
+GET /api/v1/bootcamps/{bootcamp_id}
+```
+
+Used for Product-specific training/Bootcamp information.
+
+---
+
+## Participants
+
+```http
+GET /api/v1/participants
+GET /api/v1/participants/{participant_id}
+```
+
+**Merged through PR #35.**
+
+Used for the Mobilizer Participant dashboard and Participant detail.
+
+---
+
+## Calls
+
+Planned:
+
+```http
+GET  /api/v1/participants/{participant_id}/calls
+POST /api/v1/participants/{participant_id}/calls
+```
+
+Not ready yet.
+
+---
+
+# 76. Swagger Verification
+
+Before integrating any newly delivered API against development, check:
 
 ```text
-Authentication / Product Access    ██████████  LIVE
+https://e-growth.dev.educateapps.work/docs#/
+```
 
-Product Administration             ██████████  LIVE
+If an endpoint appears there, the deployed development backend exposes it.
 
-Locations                          ██████████  BUILT
-                                  awaiting merge/deploy
+If an endpoint exists in Git but does not appear in Swagger, assume deployment has not reached the latest backend version yet.
 
-Venues                             ██████████  BUILT
-                                  awaiting merge/deploy
+Do not guess the endpoint or create a client-side workaround.
 
-Bootcamps                          ██████████  BUILT
-                                  awaiting merge/deploy
+---
 
-Participants                       ██████████  BUILT
-                                  awaiting merge/deploy
+# 77. Current Mobile API Coverage
 
-Calls / Mobilisation               ░░░░░░░░░░  NEXT
+```text
+AUTHENTICATION
+     │
+     ├── Clerk                              ✅
+     │
+     └── Product Access                     ✅
+                │
+                ▼
+PRODUCT CONTEXT                              ✅
+                │
+                ▼
+LOCATIONS                                    ✅ BUILT
+                │
+                ├── District
+                ├── Subcounty
+                ├── Parish
+                └── Village
+                │
+                ▼
+VENUES                                       ✅ BUILT
+                │
+                ▼
+BOOTCAMPS                                    ✅ BUILT
+                │
+                ▼
+PARTICIPANTS                                 ✅ MERGED — PR #35
+                │
+                ├── List
+                ├── Search
+                ├── Filter
+                ├── Pagination
+                └── Detail
+                │
+                ▼
+CALLS / CONTACT ATTEMPTS                     ⏳ NEXT
+                │
+                ▼
+MOBILISATION ANSWERS                         ⏳ NEXT
 ```
 
 ---
 
-# 58. Important Integration Rule
+# 78. Important Integration Rules
 
-The backend already serves another application.
+### Rule 1 — Backend contract wins
 
-Do not request another API simply because the Flutter model uses different names.
+Do not change backend APIs simply because Flutter uses different model names.
 
-Use this order:
-
-```text
-Existing backend API
-        ↓
-Flutter DTO mapping
-        ↓
-Additive backend extension if genuinely required
-        ↓
-New endpoint only when no equivalent capability exists
-```
-
-For example:
-
-```text
-backend full_name
-```
-
-can map to:
-
-```text
-Flutter displayName
-```
-
-without changing the backend.
+Map them in DTOs.
 
 ---
 
-# 59. Reporting API Problems
+### Rule 2 — Product context is server-enforced
 
-When reporting a mobile/backend integration issue, send:
+Do not perform Product authorization only on the client.
+
+---
+
+### Rule 3 — IDs are opaque
+
+Do not derive business information from UUIDs.
+
+---
+
+### Rule 4 — Swagger is deployment truth
+
+Git tells you what has been developed.
+
+Swagger tells you what is currently available on the deployed development environment.
+
+---
+
+### Rule 5 — Do not duplicate reference data
+
+Use:
 
 ```text
-Feature/Screen:
-HTTP method:
+location_id
+venue_id
+bootcamp_id
+```
+
+and their respective APIs.
+
+---
+
+### Rule 6 — Do not create Participants from the mobile app
+
+Participants originate from Product roster uploads.
+
+---
+
+### Rule 7 — Do not update contact counters locally
+
+Once Calls are available, the backend owns:
+
+```text
+status
+contact_attempt_count
+last_contacted_at
+```
+
+---
+
+# 79. Reporting Integration Issues
+
+When reporting an API integration issue to the backend team, provide:
+
+```text
+Feature / Screen:
+HTTP Method:
 Endpoint:
-Product code:
-Request:
-HTTP status:
-Response code:
-Response message:
+Product Code:
+Request Body / Query:
+HTTP Status:
+Response Code:
+Response Message:
 X-Request-Id:
-Expected behavior:
-Actual behavior:
+Expected Behaviour:
+Actual Behaviour:
 ```
 
-Never send Clerk session tokens into Slack/Jira screenshots.
+Example:
+
+```text
+Feature: Participant Detail
+
+Method: GET
+
+Endpoint:
+/api/v1/participants/123
+
+Product:
+mobilisation
+
+Status:
+404
+
+Response Code:
+PARTICIPANT_NOT_FOUND
+
+Request ID:
+abc123
+
+Expected:
+Participant detail should load.
+
+Actual:
+Participant is shown in the list but detail returns 404.
+```
+
+Never include Clerk session tokens in:
+
+- Slack
+- Jira
+- Screenshots
+- Logs shared publicly
 
 ---
 
-# 60. Backend/Mobile Coordination
+# 80. Backend / Mobile Coordination
 
-If a field is missing, do not silently add client-side assumptions.
-
-Ask:
+If the mobile application requires a field that does not exist, report:
 
 ```text
 Feature:
 Endpoint:
-Field needed:
-Why it is needed:
-How the UI uses it:
+Field Needed:
+Why It Is Needed:
+Where It Is Displayed:
+Example Value:
 ```
 
-The backend team will determine whether it belongs in:
+The backend team can then determine whether the correct solution is:
 
 ```text
-existing endpoint
-DTO mapping
-new endpoint
-future feature
+Existing field mapping
+        ↓
+Existing endpoint
+        ↓
+Additive field
+        ↓
+New endpoint
 ```
+
+Do not silently create incompatible client assumptions.
 
 ---
 
-# Current Handoff Summary
+# 81. Current Handoff
 
-## Ready to use on the deployed development environment
+## Ready / Merged
 
 ```http
 GET   /api/v1/auth/product-access
@@ -1676,21 +2198,24 @@ POST  /api/v1/products
 
 GET   /api/v1/products/{product_id}/memberships
 POST  /api/v1/products/{product_id}/memberships
-
 PATCH /api/v1/products/{product_id}/memberships/{membership_id}
+
+GET   /api/v1/participants
+GET   /api/v1/participants/{participant_id}
 ```
 
-The normal Mobilizer application primarily needs:
+Participant support was merged into `develop` through:
 
-```http
-GET /api/v1/auth/product-access
+```text
+PR #35
+feature/mobile-participants
 ```
-
-The Product management endpoints are mainly for administration.
 
 ---
 
-## Developed and validated, awaiting merge/deployment
+# 82. Reference APIs
+
+Backend implementations have been completed for:
 
 ```http
 GET /api/v1/locations
@@ -1701,27 +2226,108 @@ GET /api/v1/venues/{venue_id}
 
 GET /api/v1/bootcamps
 GET /api/v1/bootcamps/{bootcamp_id}
-
-GET /api/v1/participants
-GET /api/v1/participants/{participant_id}
 ```
+
+Check Swagger to confirm each has reached the current development deployment.
 
 ---
 
-## Next backend APIs
+# 83. Next Backend Delivery
+
+The next backend work should focus on:
 
 ```http
-GET  /api/v1/participants/{participant_id}/calls
+GET /api/v1/participants/{participant_id}/calls
 
 POST /api/v1/participants/{participant_id}/calls
 ```
 
+This completes the missing link between:
+
+```text
+Participant
+     ↓
+Mobilizer contacts Participant
+     ↓
+Contact attempt
+     ↓
+Mobilisation answers
+     ↓
+Participant status/progress
+```
+
+Once these endpoints are merged and deployed, the mobile team can integrate the complete core mobilisation workflow.
+
 ---
 
-## Development Documentation
+# 84. Development Documentation
+
+Swagger:
 
 ```text
 https://e-growth.dev.educateapps.work/docs#/
 ```
 
-Always check this Swagger page before assuming a newly delivered endpoint is available on the development environment.
+API Base URL:
+
+```text
+https://e-growth.dev.educateapps.work/api/v1
+```
+
+Authentication:
+
+```http
+Authorization: Bearer <clerk-session-token>
+```
+
+Product-scoped requests:
+
+```http
+X-Current-Product: <product-code>
+```
+
+---
+
+# Final Mobile Developer Note
+
+The backend is being delivered incrementally while preserving the existing E-Growth application.
+
+Do not wait for every future API before continuing mobile development.
+
+The current implementation is sufficient to continue with:
+
+```text
+Authentication
+      ↓
+Product Access
+      ↓
+Product Selection
+      ↓
+Participant Listing
+      ↓
+Participant Search / Filtering
+      ↓
+Participant Detail
+      ↓
+Location / Venue / Bootcamp Resolution
+```
+
+The backend team will next deliver the Calls / Contact Attempts API required to continue from:
+
+```text
+Participant Detail
+```
+
+to:
+
+```text
+Contact Participant
+      ↓
+Record Call
+      ↓
+Submit Mobilisation Answers
+      ↓
+Update Participant Progress
+```
+
+Always verify newly delivered endpoints against the development Swagger before enabling them in the mobile application.
